@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lug'at Pro v23 - Multi-Select</title>
+    <style>
+        :root {
+            --bg: #000;
+            --text: #fff;
+            --primary: #6d28d9;
+            --block: #111113;
+            --border: #1f1f22;
+            --accent: #10b981;
+            --edit: #3b82f6;
+            --delete: #ef4444;
+            --box-h: 52px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 16px 8px 140px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container { width: 100%; max-width: 600px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        h1 { font-size: 22px; font-weight: 800; }
+
+        .header-btns { display: flex; gap: 12px; }
+
+        .btn {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+
+        .add-btn-main { background: var(--primary); color: #fff; }
+        .global-rand-btn { background: #1a1a1c; color: #fff; border: 1px solid #333; }
+
+        .group-wrapper { margin-bottom: 15px; background: #080808; border-radius: 14px; overflow: hidden; border: 1px solid #111; }
+        
+        .group-header {
+            background: #1a1a1c;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border-left: 4px solid var(--accent);
+            user-select: none;
+        }
+
+        .group-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .arrow-icon { transition: 0.3s; color: #555; }
+        .group-wrapper.open .arrow-icon { transform: rotate(180deg); color: var(--accent); }
+
+        .group-title { color: var(--accent); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+
+        .group-btns { display: flex; align-items: center; gap: 10px; }
+
+        .group-content { 
+            display: none; 
+            padding: 10px;
+            border-top: 1px solid #111;
+        }
+        .group-wrapper.open .group-content { display: block; }
+
+        .group-add-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .group-takror-btn {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .word-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: stretch; }
+
+        .box {
+            background: var(--block);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            min-height: var(--box-h);
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .header-box {
+            background: #1a1a1c;
+            font-size: 9px;
+            color: #666;
+            font-weight: 900;
+            text-transform: uppercase;
+            min-height: 38px;
+            border-color: #333;
+        }
+
+        .col-num { width: 35px; flex: none; font-weight: 800; color: #444; }
+        .col-word { flex: 1; font-weight: 500; }
+        .col-action { width: 80px; flex: none; padding: 0; }
+
+        .actions-group { display: flex; width: 100%; height: 100%; }
+        .icon-btn { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .edit-btn { color: var(--edit); border-right: 1px solid #1f1f22; }
+        .delete-btn { color: var(--delete); }
+
+        /* MODALS */
+        .random-overlay, .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98);
+            display: none; justify-content: center; align-items: center; z-index: 6000; padding: 20px;
+        }
+
+        .random-card, .modal {
+            width: 100%; max-width: 400px; background: #111;
+            padding: 25px; border-radius: 24px; border: 1px solid #222;
+        }
+
+        /* Group Selection Styles */
+        .group-select-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin: 15px 0;
+            padding: 5px;
+        }
+        .group-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #18181b;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 1px solid #27272a;
+        }
+        .group-item input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+
+        .rand-group-label {
+            text-align: center; font-size: 10px; font-weight: 900; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;
+            background: rgba(16, 185, 129, 0.1); padding: 6px; border-radius: 8px;
+        }
+
+        .random-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .rand-box { flex: 1; font-size: 18px; font-weight: 700; min-height: 100px; }
+        .rand-answer { border-style: dashed; color: transparent; }
+        .rand-answer.show { color: #fff; border-style: solid; border-color: var(--accent); background: rgba(16,185,129,0.05); }
+
+        .main-btn {
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            font-weight: 700; font-size: 15px; margin-top: 10px; cursor: pointer;
+        }
+        .save-btn { background: var(--primary); color: #fff; }
+
+        .rand-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .mode-btn { 
+            width: 60px; background: #1a1a1c; color: #666; 
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #333; transition: 0.3s;
+        }
+        .mode-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(16,185,129,0.1); }
+
+        input {
+            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #27272a;
+            background: #18181b; color: #fff; margin-bottom: 12px; outline: none; font-size: 16px;
+        }
+
+        .chingiz-panel {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            padding: 18px 0; background: rgba(10,10,12,0.9); backdrop-filter: blur(15px);
+            border-top: 1px solid #1f1f22; display: flex; flex-direction: column; align-items: center; z-index: 4000;
+        }
+        .author-link { text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .chingiz-text { font-size: 10px; letter-spacing: 4px; color: #444; font-weight: 900; }
+        .tg-icon { color: #229ED9; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <header>
+        <h1>Lug'at pro.</h1>
+        <div class="header-btns">
+            <button class="btn global-rand-btn" onclick="openGroupSelector()">Random</button>
+            <button class="btn add-btn-main" onclick="openModal()">+ Qo‘shish</button>
+        </div>
+    </header>
+    <div id="word-list"></div>
+</div>
+
+<div class="chingiz-panel">
+    <a href="https://t.me/chingizbe_1" target="_blank" class="author-link">
+        <svg class="tg-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.35-.01-1.02-.2-1.52-.37-.62-.2-1.11-.31-1.07-.65.02-.18.27-.36.75-.55 2.94-1.28 4.91-2.12 5.89-2.52 2.81-1.15 3.39-1.35 3.77-1.35.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+        <div class="chingiz-text">CHINGIZBEK EDITION</div>
+    </a>
+</div>
+
+<div class="modal-overlay" id="group-select-overlay">
+    <div class="modal">
+        <h3 style="margin-bottom:5px; text-align:center">Guruhlarni tanlang</h3>
+        <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 10px;">Qaysi guruhlardan so'zlar tushsin?</p>
+        <div id="group-checkboxes" class="group-select-list"></div>
+        <button class="main-btn save-btn" onclick="startSelectedRandom()">BOSHLASH</button>
+        <button class="main-btn" style="background:none;color:#555" onclick="closeGroupSelector()">BEKOR QILISH</button>
+    </div>
+</div>
+
+<div class="random-overlay" id="random-overlay">
+    <div class="random-card">
+        <div class="rand-group-label" id="rand-group-title">GURUH NOMI</div>
+        <div class="random-row">
+            <div class="box rand-box" id="rand-ru"></div>
+            <div class="box rand-box rand-answer" id="rand-uz"></div>
+        </div>
+        <button class="main-btn save-btn" id="action-btn" onclick="handleAction()">TARJIMANI KO‘RISH</button>
+        <div class="rand-controls">
+            <button class="main-btn mode-btn" id="mode-btn" onclick="toggleRepeatMode()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
+            </button>
+            <button class="main-btn" style="background:none;color:#555; flex:1" onclick="closeRandom()">YOPISH</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <h3 id="m-title" style="margin-bottom:15px; text-align:center">Yangi so'z</h3>
+        <input id="ru-input" placeholder="RUS / ENG">
+        <input id="uz-input" placeholder="O‘zbekcha">
+        <input id="group-input" placeholder="Guruh nomi">
+        <button class="main-btn save-btn" onclick="saveData()">SAQLASH</button>
+        <button class="main-btn" style="background:none;color:#555" onclick="closeModal()">BEKOR QILISH</button>
+    </div>
+</div>
+
+<script>
+    let dictionary = JSON.parse(localStorage.getItem("lug_v23")) || [];
+    let randomQueue = [];
+    let currentPool = [];
+    let isRepeatMode = false;
+    let isAnswerShown = false;
+    let currentEditId = null;
+    let currentActiveGroupName = "";
+
+    function toggleGroup(el) { el.parentElement.classList.toggle('open'); }
+
+    function render() {
+        const list = document.getElementById("word-list");
+        list.innerHTML = "";
+        if (!dictionary.length) return;
+        const groups = {};
+        dictionary.forEach(w => {
+            const g = (w.group || "UMUMIY").toUpperCase();
+            if (!groups[g]) groups[g] = [];
+            groups[g].push(w);
+        });
+        for (const gName in groups) {
+            let html = `
+            <div class="group-wrapper">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div class="group-info">
+                        <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <span class="group-title">${gName} (${groups[gName].length})</span>
+                    </div>
+                    <div class="group-btns" onclick="event.stopPropagation()">
+                        <div class="group-add-btn" onclick="openWithGroup('${gName}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+                        <div class="group-takror-btn" onclick="startGroupRandom('${gName}')"> TAKRORLASH </div>
+                    </div>
+                </div>
+                <div class="group-content">
+                    <div class="word-row">
+                        <div class="box header-box col-num">№</div>
+                        <div class="box header-box col-word">RUS ENG</div>
+                        <div class="box header-box col-word">O'ZBEKCHA</div>
+                        <div class="box header-box col-action">AMAL</div>
+                    </div>`;
+            groups[gName].forEach((w, i) => {
+                html += `
+                <div class="word-row">
+                    <div class="box col-num">${i+1}</div>
+                    <div class="box col-word"><b>${w.ru}</b></div>
+                    <div class="box col-word">${w.uz}</div>
+                    <div class="box col-action">
+                        <div class="actions-group">
+                            <div class="icon-btn edit-btn" onclick="editWord('${w.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
+                            <div class="icon-btn delete-btn" onclick="deleteWord('${w.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += `</div></div>`;
+            list.innerHTML += html;
+        }
+    }
+
+    function openModal() { currentEditId = null; document.getElementById("modal-overlay").style.display = "flex"; }
+    function openWithGroup(g) { openModal(); document.getElementById("group-input").value = g; }
+    function closeModal() { document.getElementById("modal-overlay").style.display = "none"; document.querySelectorAll("input").forEach(i => i.value=""); }
+    
+    function saveData() {
+        const ru = document.getElementById("ru-input").value.trim(), uz = document.getElementById("uz-input").value.trim(), group = document.getElementById("group-input").value.trim() || "UMUMIY";
+        if (!ru || !uz) return;
+        if (currentEditId) {
+            const i = dictionary.findIndex(x => x.id === currentEditId);
+            dictionary[i] = { ...dictionary[i], ru, uz, group: group.toUpperCase() };
+        } else {
+            dictionary.push({ id: Date.now().toString(), ru, uz, group: group.toUpperCase() });
+        }
+        localStorage.setItem("lug_v23", JSON.stringify(dictionary));
+        render(); closeModal();
+    }
+
+    function editWord(id) {
+        const w = dictionary.find(x => x.id === id); currentEditId = id;
+        document.getElementById("ru-input").value = w.ru; document.getElementById("uz-input").value = w.uz; document.getElementById("group-input").value = w.group;
+        document.getElementById("modal-overlay").style.display = "flex";
+    }
+
+    function deleteWord(id) { if (confirm("O'chirilsinmi?")) { dictionary = dictionary.filter(x => x.id !== id); localStorage.setItem("lug_v23", JSON.stringify(dictionary)); render(); } }
+
+    /* RANDOM LOGIC WITH GROUP SELECTION */
+    function openGroupSelector() {
+        if (!dictionary.length) return;
+        const groups = [...new Set(dictionary.map(w => (w.group || "UMUMIY").toUpperCase()))];
+        const container = document.getElementById("group-checkboxes");
+        container.innerHTML = "";
+
+        groups.forEach(g => {
+            container.innerHTML += `
+                <label class="group-item">
+                    <input type="checkbox" class="group-check" value="${g}" checked>
+                    <span>${g}</span>
+                </label>
+            `;
+        });
+        document.getElementById("group-select-overlay").style.display = "flex";
+    }
+
+    function closeGroupSelector() { document.getElementById("group-select-overlay").style.display = "none"; }
+
+    function startSelectedRandom() {
+        const selected = Array.from(document.querySelectorAll('.group-check:checked')).map(cb => cb.value);
+        if (!selected.length) { alert("Kamida bitta guruhni tanlang!"); return; }
+
+        currentPool = dictionary.filter(w => selected.includes((w.group || "UMUMIY").toUpperCase()));
+        currentActiveGroupName = selected.length === 1 ? selected[0] : "ARALASH GURUHLAR";
+        
+        restartQueue();
+        closeGroupSelector();
+        document.getElementById("random-overlay").style.display = "flex";
+        nextRand();
+    }
+
+    function startGroupRandom(g) {
+        currentPool = dictionary.filter(w => (w.group || "UMUMIY").toUpperCase() === g.toUpperCase());
+        currentActiveGroupName = g.toUpperCase();
+        restartQueue();
+        document.getElementById("random-overlay").style.display = "flex";
+        nextRand();
+    }
+
+    function handleAction() {
+        const btn = document.getElementById("action-btn");
+        if (!isAnswerShown) {
+            document.getElementById("rand-uz").classList.add("show");
+            isAnswerShown = true;
+            btn.innerText = "KEYINGI SO'Z";
+            btn.style.background = "#222";
+        } else { nextRand(); }
+    }
+
+    function toggleRepeatMode() {
+        isRepeatMode = !isRepeatMode;
+        document.getElementById("mode-btn").classList.toggle("active", isRepeatMode);
+    }
+
+    function restartQueue() { if (currentPool.length) randomQueue = [...currentPool].sort(() => Math.random() - .5); }
+    
+    function nextRand() {
+        const btn = document.getElementById("action-btn");
+        const titleEl = document.getElementById("rand-group-title");
+        isAnswerShown = false;
+        btn.innerText = "TARJIMANI KO‘RISH";
+        btn.style.background = "var(--primary)";
+        titleEl.innerText = currentActiveGroupName;
+
+        if (isRepeatMode) {
+            displayRandWord(currentPool[Math.floor(Math.random() * currentPool.length)]);
+        } else {
+            if (!randomQueue.length) {
+                document.getElementById("rand-ru").innerText = "TUGADI!";
+                document.getElementById("rand-uz").innerText = "---";
+                btn.innerText = "YAYIDAN BOSHLASH";
+                btn.onclick = () => { restartQueue(); nextRand(); };
+                return;
+            }
+            btn.onclick = handleAction;
+            displayRandWord(randomQueue.pop());
+        }
+    }
+
+    function displayRandWord(word) {
+        document.getElementById("rand-ru").innerText = word.ru;
+        document.getElementById("rand-uz").innerText = word.uz;
+        document.getElementById("rand-uz").classList.remove("show");
+    }
+
+    function closeRandom() { document.getElementById("random-overlay").style.display = "none"; document.getElementById("action-btn").onclick = handleAction; }
+
+    render();
+</script>
+</body>
+</html>
